@@ -2,6 +2,8 @@ import { createAction, createReducer } from "redux-act";
 
 export const addNote = createAction();
 export const openNote = createAction();
+export const updateNote = createAction();
+export const filterBy = createAction();
 
 export const notes = createReducer(
     {
@@ -14,8 +16,14 @@ export const notes = createReducer(
             };
         },
         [openNote]: (state, id) => {
-            return {...state, selectedNote: id}
-        }
+            return { ...state, selectedNote: id };
+        },
+        [updateNote]: (state, { id, value }) => {
+            return { ...state, items: { ...state.items, [id]: value } };
+        },
+        [filterBy]: (state, payload) => {
+            return { ...state, searchField: payload };
+        },
     },
-    { noteIds: [], items: {}, selectedNote: null }
+    { noteIds: [], items: {}, selectedNote: null, searchField: null }
 );
