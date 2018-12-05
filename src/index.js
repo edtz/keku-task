@@ -3,17 +3,44 @@ import ReactDOM from "react-dom";
 import App from "./App";
 import * as serviceWorker from "./serviceWorker";
 import { Provider } from "react-redux";
-import { createStore } from "redux";
+import { createStore, applyMiddleware } from "redux";
 import { reducer } from "./store";
-import io from 'socket.io-client';
+import io from "socket.io-client";
+import { loadNotes } from "./store/notes";
+import { setOfflineStatus } from "./store/core";
 
-const localState = localStorage.getItem("state")
+const emit = msg => socket.send(msg);
+
+// tbh better done via saga but I'm running out of time
+const mirrorToSocket = store => next => action => {
+    if (action.type.includes("updateNote") && !action.fromSocket) emit(action);
+    return next(action);
+};
+const middleware = applyMiddleware(mirrorToSocket);
+
+// init store from localstorage for offline + subscribe to store updates
 let store;
-if (localState) store = createStore(reducer, JSON.parse(localState))
-else store = createStore(reducer);
-store.subscribe(() => localStorage.setItem("state", JSON.stringify(store.getState())));
-const socket = io("http://localhost:9000");
-socket.on("connect", () => console.log("connected"));
+const localState = localStorage.getItem("state");
+localState
+    ? (store = createStore(reducer, JSON.parse(localState), middleware))
+    : (store = createStore(reducer, middleware));
+store.subscribe(() =>
+    localStorage.setItem("state", JSON.stringify(store.getState()))
+);
+
+const socket = io("/");
+socket.on("connect", async () => {
+    const resp = await fetch("/api/notes/getAll");
+    const serverState = await resp.json();
+    store.dispatch(loadNotes(serverState));
+    store.dispatch(setOfflineStatus(false));
+});
+socket.on("message", action => {
+    store.dispatch({...action, fromSocket: true});
+});
+socket.on("disconnect", async () => {
+    store.dispatch(setOfflineStatus(true));
+});
 
 ReactDOM.render(
     <Provider store={store}>
@@ -22,7 +49,5 @@ ReactDOM.render(
     document.getElementById("root")
 );
 
-// If you want your app to work offline and load faster, you can change
-// unregister() to register() below. Note this comes with some pitfalls.
-// Learn more about service workers: http://bit.ly/CRA-PWA
-serviceWorker.unregister();
+// makes app available offline
+serviceWorker.register();

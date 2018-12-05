@@ -1,4 +1,5 @@
-import {combineReducers} from "redux";
-import {notes} from "./notes";
+import { combineReducers } from "redux";
+import { notes } from "./notes";
+import { core } from "./core";
 
-export const reducer = combineReducers({notes});
+export const reducer = combineReducers({ core, notes });

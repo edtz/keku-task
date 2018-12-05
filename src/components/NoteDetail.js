@@ -5,18 +5,30 @@ import { updateNote } from "../store/notes";
 
 const Text = styled.textarea`
     color: black;
-    ${props => props.disabled && "color: grey"}
+    flex: 6;
+    border: none;
+    font-size: 18px;
+    margin: 12px 0 0 20px;
+    ${props =>
+        props.disabled &&
+        `
+        user-select: none;
+        color: grey;
+    `}
 `;
 
-const NoteDetail = ({ text, id, updateNote }) => {
-    const changeHandler = ({ target: { value } }) => updateNote({id, value});
-    return text ? <Text onChange={changeHandler} value={text} /> : null;
+const NoteDetail = ({ text, id, updateNote, offline }) => {
+    const changeHandler = ({ target: { value } }) => updateNote({ id, value });
+    return (
+        <Text disabled={offline || !id} onChange={changeHandler} value={text} />
+    );
 };
 
 const mapStateToProps = state => {
     return {
         text: state.notes.items[state.notes.selectedNote],
         id: state.notes.selectedNote,
+        offline: state.core.offline,
     };
 };
 
